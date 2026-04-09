@@ -1,0 +1,1 @@
+function i(r,n=0){const t=10**n;return Math.round(r*t)/t}function u(r,n,t){return Math.min(Math.max(r,n),t)}function m(r,n=0){return new Intl.NumberFormat("zh-TW",{maximumFractionDigits:n,minimumFractionDigits:n}).format(r)}function a(r,n){return n<=0?0:u(r/n*100,0,999)}export{u as c,m as f,a as p,i as r};
