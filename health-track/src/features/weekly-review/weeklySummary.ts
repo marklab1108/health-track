@@ -4,6 +4,9 @@ import { round } from '../../lib/numbers'
 
 export type WeeklySummary = {
   dayCount: number
+  expectedDayCount: number
+  completenessRate: number
+  missingDayCount: number
   mealCount: number
   averageCalories: number
   averageProteinG: number
@@ -11,6 +14,8 @@ export type WeeklySummary = {
   averageCarbsG: number
   targetCalories: number
   calorieDeltaFromTarget: number
+  targetProteinG: number
+  proteinDeltaFromTarget: number
   previousPeriodWeightKg?: number
   currentPeriodWeightKg?: number
   weightChangeKg?: number
@@ -36,20 +41,28 @@ export function summarizeWeek(meals: Meal[], currentPeriodWeighIns: WeighIn[], p
     { calories: 0, proteinG: 0, fatG: 0, carbsG: 0 }
   )
   const targetCalories = goal?.dailyTargets.calories ?? 0
+  const targetProteinG = goal?.dailyTargets.proteinG ?? 0
   const previousPeriodWeight = sortedPreviousWeights[sortedPreviousWeights.length - 1]?.weightKg
   const currentPeriodWeight = sortedCurrentWeights[sortedCurrentWeights.length - 1]?.weightKg
   const weightChange = previousPeriodWeight !== undefined && currentPeriodWeight !== undefined ? round(currentPeriodWeight - previousPeriodWeight, 1) : undefined
   const averageCalories = round(totals.calories / divisor)
+  const averageProteinG = round(totals.proteinG / divisor)
+  const expectedDayCount = 7
 
   return {
     dayCount,
+    expectedDayCount,
+    completenessRate: round((dayCount / expectedDayCount) * 100),
+    missingDayCount: Math.max(expectedDayCount - dayCount, 0),
     mealCount: meals.length,
     averageCalories,
-    averageProteinG: round(totals.proteinG / divisor),
+    averageProteinG,
     averageFatG: round(totals.fatG / divisor),
     averageCarbsG: round(totals.carbsG / divisor),
     targetCalories,
     calorieDeltaFromTarget: targetCalories ? round(averageCalories - targetCalories) : 0,
+    targetProteinG,
+    proteinDeltaFromTarget: targetProteinG ? round(averageProteinG - targetProteinG) : 0,
     previousPeriodWeightKg: previousPeriodWeight,
     currentPeriodWeightKg: currentPeriodWeight,
     weightChangeKg: weightChange

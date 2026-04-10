@@ -1,17 +1,21 @@
 import { useState } from 'react'
+import { format } from 'date-fns'
 import { Link } from 'react-router-dom'
-import { clearAllData } from '../../lib/db'
+import { clearAllData, getCurrentGoal } from '../../lib/db'
 import { seedDemoData } from '../../lib/demoData'
+import { useAsyncValue } from '../shared/useAsyncValue'
 
 export function SettingsPage() {
   const [statusMessage, setStatusMessage] = useState<string>()
   const [isMutating, setIsMutating] = useState(false)
+  const { value: currentGoal, reload } = useAsyncValue(getCurrentGoal)
 
   async function handleSeedDemoData() {
     setIsMutating(true)
     try {
       await seedDemoData()
       setStatusMessage('已載入 demo data。現在可以直接去看今日、記錄和週回顧。')
+      reload()
     } finally {
       setIsMutating(false)
     }
@@ -22,6 +26,7 @@ export function SettingsPage() {
     try {
       await clearAllData()
       setStatusMessage('已清空本機資料。你可以重新走一次空白流程。')
+      reload()
     } finally {
       setIsMutating(false)
     }
@@ -36,6 +41,19 @@ export function SettingsPage() {
           調整目標
         </Link>
       </div>
+
+      {currentGoal ? (
+        <div className="panel">
+          <div className="section-heading">
+            <h2>目前目標</h2>
+          </div>
+          <p>
+            每日 {currentGoal.dailyTargets.calories} kcal / 蛋白質 {currentGoal.dailyTargets.proteinG}g / 脂肪 {currentGoal.dailyTargets.fatG}g /
+            碳水 {currentGoal.dailyTargets.carbsG}g
+          </p>
+          <p>最近更新 {format(new Date(currentGoal.updatedAt), 'yyyy/MM/dd')}</p>
+        </div>
+      ) : null}
 
       <div className="panel">
         <h2>Demo Data</h2>

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 
 const GoalSetupPage = lazy(() => import('../features/goals/GoalSetupPage').then((module) => ({ default: module.GoalSetupPage })))
@@ -29,6 +29,10 @@ export function App() {
 function AppShell() {
   const location = useLocation()
   const hideNav = location.pathname === '/setup'
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.pathname])
 
   return (
     <div className="app-shell">

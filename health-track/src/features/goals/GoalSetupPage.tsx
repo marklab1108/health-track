@@ -1,11 +1,13 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
-import { db, getCurrentGoal, upsertGoal } from '../../lib/db'
-import { buildGoal, calculateDailyTargets } from './goalCalculations'
+import { format } from 'date-fns'
+import { getCurrentGoal } from '../../lib/db'
+import { calculateDailyTargets } from './goalCalculations'
 import { goalSchema, type GoalFormValues } from './goalSchema'
 import { applyZodErrors } from '../shared/formErrors'
 import { useAsyncValue } from '../shared/useAsyncValue'
+import { saveGoalVersion } from './goalVersioning'
 
 const defaultValues: GoalFormValues = {
   heightCm: 175,
@@ -25,12 +27,27 @@ export function GoalSetupPage() {
     register,
     handleSubmit,
     watch,
+    reset,
     setError,
     formState: { errors, isSubmitting }
   } = useForm<GoalFormValues>({ defaultValues })
   const watched = watch()
   const previewResult = goalSchema.safeParse(watched)
   const preview = previewResult.success ? calculateDailyTargets(previewResult.data) : undefined
+
+  useEffect(() => {
+    if (!currentGoal) return
+
+    reset({
+      heightCm: currentGoal.heightCm,
+      currentWeightKg: currentGoal.currentWeightKg,
+      targetWeightKg: currentGoal.targetWeightKg,
+      age: currentGoal.age,
+      sex: currentGoal.sex,
+      activityLevel: currentGoal.activityLevel,
+      direction: currentGoal.direction
+    })
+  }, [currentGoal, reset])
 
   const onSubmit = useCallback(
     async (values: GoalFormValues) => {
@@ -40,8 +57,7 @@ export function GoalSetupPage() {
         return
       }
 
-      const previous = await db.goals.orderBy('updatedAt').reverse().first()
-      await upsertGoal(buildGoal(result.data, previous?.id))
+      await saveGoalVersion(result.data)
       navigate('/today')
     },
     [navigate, setError]
@@ -53,6 +69,12 @@ export function GoalSetupPage() {
         <p className="eyebrow">個人化目標</p>
         <h1>{currentGoal ? '調整你的每日目標' : '先設定你的減脂基準線'}</h1>
         <p>輸入基本資料後，系統會估算每日熱量與三大營養素。第一版用這個作為週回顧的比較基準。</p>
+        {currentGoal ? (
+          <div className="badge-row">
+            <span className="badge badge--active">目前目標</span>
+            <span className="badge">最近更新 {format(new Date(currentGoal.updatedAt), 'yyyy/MM/dd')}</span>
+          </div>
+        ) : null}
       </div>
 
       <form className="panel form-grid" onSubmit={handleSubmit(onSubmit)}>

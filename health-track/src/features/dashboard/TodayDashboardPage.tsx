@@ -3,20 +3,25 @@ import { useForm } from 'react-hook-form'
 import { Link, Navigate } from 'react-router-dom'
 import { db, getCurrentGoal } from '../../lib/db'
 import { dayBounds } from '../../lib/dates'
-import { formatNumber, percent } from '../../lib/numbers'
+import { formatNumber, percent, round } from '../../lib/numbers'
 import type { Goal, Meal } from '../../lib/types'
 import { applyZodErrors } from '../shared/formErrors'
 import { useAsyncValue } from '../shared/useAsyncValue'
 import { summarizeDay } from './dailySummary'
 import { mealFormFromMeal, updateMealFromForm } from '../meals/mealCalculations'
 import { mealSchema, type MealFormValues } from '../meals/mealSchema'
+import { cloneMealForDate, getMostRecentMeal, getTodayDateInputValue, getYesterdayMeals } from '../meals/mealQueries'
+import { getTemplateUsageTimestamp, trackTemplateUsage } from '../meals/mealTemplateStats'
 
 export function TodayDashboardPage() {
+  const [statusMessage, setStatusMessage] = useState<string>()
   const loader = useCallback(async () => {
     const goal = await getCurrentGoal()
     const bounds = dayBounds(new Date())
     const meals = await db.meals.where('eatenAt').between(bounds.start, bounds.end, true, true).sortBy('eatenAt')
-    return { goal, meals }
+    const yesterdayMeals = await getYesterdayMeals()
+    const recentMeal = await getMostRecentMeal()
+    return { goal, meals, yesterdayMeals, recentMeal }
   }, [])
   const { value, isLoading, error, reload } = useAsyncValue(loader)
 
@@ -24,13 +29,66 @@ export function TodayDashboardPage() {
   if (error) return <PageMessage title="讀取失敗" body="請重新整理後再試一次。" />
   if (!value?.goal) return <Navigate to="/setup" replace />
 
-  return <TodayContent goal={value.goal} meals={value.meals} reload={reload} />
+  return (
+    <TodayContent
+      goal={value.goal}
+      meals={value.meals}
+      yesterdayMeals={value.yesterdayMeals}
+      recentMeal={value.recentMeal}
+      statusMessage={statusMessage}
+      setStatusMessage={setStatusMessage}
+      reload={reload}
+    />
+  )
 }
 
-function TodayContent({ goal, meals, reload }: { goal: Goal; meals: Meal[]; reload: () => void }) {
+function TodayContent({
+  goal,
+  meals,
+  yesterdayMeals,
+  recentMeal,
+  statusMessage,
+  setStatusMessage,
+  reload
+}: {
+  goal: Goal
+  meals: Meal[]
+  yesterdayMeals: Meal[]
+  recentMeal?: Meal
+  statusMessage?: string
+  setStatusMessage: (message: string | undefined) => void
+  reload: () => void
+}) {
   const summary = summarizeDay(meals, goal)
   const caloriePercent = percent(summary.calories, goal.dailyTargets.calories)
   const [editingMealId, setEditingMealId] = useState<string | null>(null)
+  const todayInput = getTodayDateInputValue()
+
+  const handleCopyYesterday = useCallback(async () => {
+    if (yesterdayMeals.length === 0) return
+
+    const clonedMeals = yesterdayMeals.map((meal) => cloneMealForDate(meal, todayInput))
+
+    await db.meals.bulkPut(clonedMeals)
+    await Promise.all(
+      clonedMeals.filter((meal) => meal.templateId).map((meal) => trackTemplateUsage(meal.templateId as string, getTemplateUsageTimestamp()))
+    )
+
+    setStatusMessage(`已複製昨天的 ${yesterdayMeals.length} 餐。`)
+    reload()
+  }, [reload, todayInput, yesterdayMeals])
+
+  const handleCopyRecentMeal = useCallback(async () => {
+    if (!recentMeal) return
+
+    const nextMeal = cloneMealForDate(recentMeal, todayInput)
+    await db.meals.put(nextMeal)
+    if (recentMeal.templateId) {
+      await trackTemplateUsage(recentMeal.templateId, getTemplateUsageTimestamp())
+    }
+    setStatusMessage(`已複製最近一筆餐點：${recentMeal.name}`)
+    reload()
+  }, [recentMeal, reload, todayInput])
 
   return (
     <section className="page">
@@ -55,13 +113,28 @@ function TodayContent({ goal, meals, reload }: { goal: Goal; meals: Meal[]; relo
         <MacroCard label="碳水" value={summary.carbsG} target={goal.dailyTargets.carbsG} unit="g" />
       </div>
 
-      <Link className="button button--primary" to="/log">
-        記一餐
-      </Link>
+      <section className="panel">
+        <div className="section-heading">
+          <h2>快速操作</h2>
+        </div>
+        <div className="quick-actions">
+          <Link className="button button--primary" to="/log">
+            記一餐
+          </Link>
+          <button className="button" type="button" onClick={handleCopyYesterday} disabled={yesterdayMeals.length === 0}>
+            複製昨天
+          </button>
+          <button className="button" type="button" onClick={handleCopyRecentMeal} disabled={!recentMeal}>
+            複製最近一筆
+          </button>
+        </div>
+        {statusMessage ? <p className="status-note">{statusMessage}</p> : null}
+      </section>
 
       <section className="section">
         <div className="section-heading">
           <h2>今天的餐點</h2>
+          <span className="badge badge--muted">記錄 {summary.mealCount} 餐</span>
         </div>
         {meals.length === 0 ? (
           <div className="empty-state">還沒有餐點。先記下一餐，週回顧才會開始有資料。</div>
@@ -195,6 +268,9 @@ function MealListItem({
       </div>
       <div className="meal-actions">
         <strong>{formatNumber(meal.calories)} kcal</strong>
+        <span className="meal-subvalue">
+          蛋白質 {round(meal.proteinG, 0)}g
+        </span>
         <div className="actions-row actions-row--compact">
           <button className="button button--small" type="button" onClick={onEdit}>
             修改

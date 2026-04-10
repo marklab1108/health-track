@@ -22,6 +22,9 @@ describe('summarizeWeek', () => {
   it('calculates averages against target and weight change', () => {
     expect(summarizeWeek(meals, weighIns, previousWeekWeighIns, goal)).toMatchObject({
       dayCount: 2,
+      expectedDayCount: 7,
+      completenessRate: 29,
+      missingDayCount: 5,
       mealCount: 2,
       averageCalories: 2000,
       averageProteinG: 135,
@@ -29,6 +32,8 @@ describe('summarizeWeek', () => {
       averageCarbsG: 220,
       targetCalories: 2000,
       calorieDeltaFromTarget: 0,
+      targetProteinG: 140,
+      proteinDeltaFromTarget: -5,
       previousPeriodWeightKg: 80,
       currentPeriodWeightKg: 79.5,
       weightChangeKg: -0.5

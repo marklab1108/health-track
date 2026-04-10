@@ -6,13 +6,25 @@ export function buildWeeklyInsight(summary: WeeklySummary, direction: GoalDirect
     return '這週還沒有飲食紀錄。先讓記錄流程跑起來，週回顧才有判斷依據。'
   }
 
+  if (summary.dayCount < 3) {
+    return `這週只記錄了 ${summary.dayCount} 天，先把記錄天數拉高，再解讀熱量和體重的關係。`
+  }
+
   if (summary.weightChangeKg === undefined) {
     return '這週還缺體重紀錄。補上至少兩筆體重，才能把飲食和體重變化放在一起看。'
+  }
+
+  if (summary.proteinDeltaFromTarget < -20) {
+    return '這週蛋白質明顯低於建議量。先把蛋白質補齊，再看熱量調整會比較準。'
   }
 
   if (direction === 'lose') {
     if (summary.calorieDeltaFromTarget > 150 && summary.weightChangeKg >= 0) {
       return '這週平均攝取高於建議量，而且體重沒有下降。下週先把常吃餐點份量調小一點。'
+    }
+
+    if (summary.calorieDeltaFromTarget < -250 && summary.weightChangeKg >= 0) {
+      return '這週熱量看起來偏低，但體重沒有往下走。先檢查是否有漏記，或觀察下週趨勢再決定。'
     }
 
     if (summary.calorieDeltaFromTarget <= 150 && summary.weightChangeKg < 0) {

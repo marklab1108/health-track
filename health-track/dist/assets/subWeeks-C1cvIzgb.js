@@ -1,0 +1,1 @@
+import{t as n,c as a}from"./useAsyncValue-rlj8VBe2.js";function i(e,t,r){const s=n(e,r?.in);return isNaN(t)?a(e,NaN):(t&&s.setDate(s.getDate()+t),s)}function o(e,t,r){return i(e,t*7,r)}function c(e,t,r){return o(e,-t,r)}export{i as a,c as s};

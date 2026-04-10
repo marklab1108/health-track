@@ -45,6 +45,8 @@ export function buildGoal(input: GoalFormValues, previousId?: string): Goal {
 
   return {
     id: previousId ?? crypto.randomUUID(),
+    version: 1,
+    isActive: true,
     ...input,
     bmr: calculateBmr(input),
     tdee: calculateTdee(input),

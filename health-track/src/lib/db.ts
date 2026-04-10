@@ -16,21 +16,48 @@ export class HealthTrackDatabase extends Dexie {
       mealTemplates: 'id, updatedAt',
       weighIns: 'id, measuredAt'
     })
+
+    this.version(2)
+      .stores({
+        goals: 'id, updatedAt, createdAt, isActive, version',
+        meals: 'id, eatenAt, templateId, createdAt',
+        mealTemplates: 'id, updatedAt, lastUsedAt, usageCount',
+        weighIns: 'id, measuredAt'
+      })
+      .upgrade(async (tx) => {
+        const goals = await tx.table<Goal, string>('goals').toArray()
+        const sortedGoals = [...goals].sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+
+        await Promise.all(
+          sortedGoals.map((goal, index) =>
+            tx.table<Goal, string>('goals').put({
+              ...goal,
+              version: goal.version ?? index + 1,
+              isActive: index === sortedGoals.length - 1,
+              archivedAt: index === sortedGoals.length - 1 ? undefined : goal.archivedAt ?? goal.updatedAt
+            })
+          )
+        )
+
+        const templates = await tx.table<MealTemplate, string>('mealTemplates').toArray()
+        await Promise.all(
+          templates.map((template) =>
+            tx.table<MealTemplate, string>('mealTemplates').put({
+              ...template,
+              usageCount: template.usageCount ?? 0,
+              lastUsedAt: template.lastUsedAt
+            })
+          )
+        )
+      })
   }
 }
 
 export const db = new HealthTrackDatabase()
 
 export async function getCurrentGoal() {
-  const goals = await db.goals.orderBy('updatedAt').reverse().limit(1).toArray()
-  return goals[0]
-}
-
-export async function upsertGoal(goal: Goal) {
-  await db.transaction('rw', db.goals, async () => {
-    await db.goals.clear()
-    await db.goals.put(goal)
-  })
+  const goals = await db.goals.orderBy('updatedAt').reverse().toArray()
+  return goals.find((goal) => goal.isActive) ?? goals[0]
 }
 
 export async function clearAllData() {

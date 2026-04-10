@@ -115,7 +115,7 @@ p {
 .macro-grid,
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
@@ -176,6 +176,8 @@ p {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .empty-state {
@@ -203,6 +205,19 @@ p {
   background: #ffffff;
 }
 
+.list-item--stacked,
+.list-item--button {
+  display: grid;
+  justify-content: stretch;
+}
+
+.list-item--button {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+  cursor: pointer;
+}
+
 .list-item--editing {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -226,6 +241,12 @@ p {
   flex: 0 0 132px;
   justify-items: end;
   gap: 10px;
+}
+
+.meal-subvalue {
+  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 
 .form-grid {
@@ -343,6 +364,7 @@ small {
   padding-bottom: 4px;
 }
 
+.template-card,
 .template-chip {
   flex: 0 0 auto;
   min-height: 44px;
@@ -352,6 +374,105 @@ small {
   background: #f0fdfa;
   color: #134e4a;
   font-weight: 700;
+}
+
+.template-card {
+  display: grid;
+  min-width: 160px;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.template-card span {
+  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.template-chip--selected {
+  border-color: #0f766e;
+  background: #ccfbf1;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.badge--active {
+  border-color: #99f6e4;
+  background: #ecfeff;
+  color: #115e59;
+}
+
+.badge--warning {
+  border-color: #fdba74;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.badge--muted {
+  color: #64748b;
+}
+
+.segmented-control {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.segmented-control__item {
+  min-height: 36px;
+  border: 0;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #475569;
+  font-weight: 700;
+}
+
+.segmented-control__item--active {
+  background: #ccfbf1;
+  color: #134e4a;
+}
+
+.insight-banner {
+  gap: 10px;
+  border-color: #99f6e4;
+  background: #f0fdfa;
+}
+
+.goal-history-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.text-link {
+  color: #0f766e;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .chart-panel {
@@ -446,5 +567,9 @@ small {
 
   .meal-actions {
     flex-basis: 116px;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr;
   }
 }

@@ -13,6 +13,8 @@ export type MacroTargets = {
 
 export type Goal = {
   id: string
+  version: number
+  isActive: boolean
   heightCm: number
   currentWeightKg: number
   targetWeightKg: number
@@ -25,6 +27,7 @@ export type Goal = {
   dailyTargets: MacroTargets
   createdAt: string
   updatedAt: string
+  archivedAt?: string
 }
 
 export type Meal = {
@@ -46,6 +49,8 @@ export type MealTemplate = {
   proteinG: number
   fatG: number
   carbsG: number
+  usageCount: number
+  lastUsedAt?: string
   createdAt: string
   updatedAt: string
 }

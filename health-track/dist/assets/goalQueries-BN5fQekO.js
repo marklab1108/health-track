@@ -1,0 +1,1 @@
+import{d as r}from"./useAsyncValue-rlj8VBe2.js";async function s(){const e=await r.goals.orderBy("updatedAt").reverse().toArray();return e.find(t=>t.isActive)??e[0]}async function c(e){const t=await r.goals.orderBy("createdAt").toArray(),a=t.filter(o=>o.createdAt<=e);return a[a.length-1]??t[t.length-1]}export{c as a,s as g};

@@ -28,6 +28,8 @@ export function buildMealTemplate(input: MealFormValues): MealTemplate {
     proteinG: input.proteinG,
     fatG: input.fatG,
     carbsG: input.carbsG,
+    usageCount: 1,
+    lastUsedAt: now,
     createdAt: now,
     updatedAt: now
   }

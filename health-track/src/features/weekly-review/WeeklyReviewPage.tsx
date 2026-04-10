@@ -1,7 +1,8 @@
 import { useCallback } from 'react'
 import { useForm } from 'react-hook-form'
+import { format } from 'date-fns'
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { db, getCurrentGoal } from '../../lib/db'
+import { db } from '../../lib/db'
 import { lastFourWeeksBounds, monthBounds, previousMonthBounds, toDateInputValue, weekBounds } from '../../lib/dates'
 import { formatNumber } from '../../lib/numbers'
 import { useAsyncValue } from '../shared/useAsyncValue'
@@ -10,6 +11,7 @@ import { buildWeighIn } from '../weigh-ins/weightTrend'
 import { weighInSchema, type WeighInFormValues } from '../weigh-ins/weighInSchema'
 import { buildWeeklyInsight } from './recommendationRules'
 import { buildFourWeekWeightTrend, summarizeWeek } from './weeklySummary'
+import { getGoalForDate } from '../goals/goalQueries'
 
 const defaultValues: WeighInFormValues = {
   measuredAt: toDateInputValue(new Date()),
@@ -18,8 +20,8 @@ const defaultValues: WeighInFormValues = {
 
 export function WeeklyReviewPage() {
   const loader = useCallback(async () => {
-    const goal = await getCurrentGoal()
     const weeklyBounds = weekBounds(new Date())
+    const goal = await getGoalForDate(weeklyBounds.end)
     const currentMonth = monthBounds(new Date())
     const previousMonth = previousMonthBounds(new Date())
     const fourWeekBounds = lastFourWeeksBounds(new Date())
@@ -82,12 +84,28 @@ export function WeeklyReviewPage() {
       <div className="page-header">
         <p className="eyebrow">週回顧</p>
         <h1>{summary.mealCount > 0 ? `平均 ${formatNumber(summary.averageCalories)} kcal / day` : '先累積本週紀錄'}</h1>
-        <p>{insight}</p>
+        <div className="badge-row">
+          <span className={summary.dayCount >= 5 ? 'badge badge--active' : 'badge badge--warning'}>
+            完整度 {summary.completenessRate}%
+          </span>
+          {value.goal ? <span className="badge">依目前目標計算</span> : null}
+          {value.goal ? <span className="badge">目標更新於 {format(new Date(value.goal.createdAt), 'yyyy/MM/dd')}</span> : null}
+        </div>
       </div>
+
+      <section className="panel insight-banner">
+        <h2>本週結論</h2>
+        <p>{insight}</p>
+        {summary.missingDayCount > 0 ? <p>目前還少 {summary.missingDayCount} 天的飲食紀錄，週平均會偏保守解讀。</p> : null}
+      </section>
 
       <div className="stats-grid">
         <MetricCard label="建議熱量" value={`${formatNumber(summary.targetCalories)} kcal`} />
         <MetricCard label="平均差距" value={`${summary.calorieDeltaFromTarget > 0 ? '+' : ''}${formatNumber(summary.calorieDeltaFromTarget)} kcal`} />
+        <MetricCard
+          label="蛋白質差距"
+          value={`${summary.proteinDeltaFromTarget > 0 ? '+' : ''}${formatNumber(summary.proteinDeltaFromTarget)} g`}
+        />
         <MetricCard label="本月體重變化" value={summary.weightChangeKg === undefined ? '資料不足' : `${summary.weightChangeKg > 0 ? '+' : ''}${summary.weightChangeKg} kg`} />
       </div>
 
@@ -137,7 +155,7 @@ export function WeeklyReviewPage() {
         <button className="button button--primary span-2" type="submit" disabled={isSubmitting}>
           儲存體重
         </button>
-        <p className="form-note span-2">本月體重變化會用本月最後一筆體重，和上月最後一筆體重相比。</p>
+        <p className="form-note span-2">折線圖固定顯示近四週各週最後一筆體重；本月體重變化則用本月最後一筆和上月最後一筆相比。</p>
       </form>
     </section>
   )
